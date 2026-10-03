@@ -12,7 +12,9 @@ import { PRODUCTS } from '../../src/data/products.js';
  */
 test.use({
   baseURL: 'https://www.saucedemo.com',
-  storageState: '.auth/user.json',
+  storageState: async ({ browserName }, use) => {
+    await use(`.auth/user-${browserName}.json`);
+  },
 });
 
 test.beforeEach(async () => {
