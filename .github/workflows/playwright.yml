@@ -1,0 +1,174 @@
+name: Playwright Tests
+
+# ── When this pipeline runs ───────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Manual run from the Actions tab with a suite + browser picker.
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to run'
+        type: choice
+        default: all
+        options: [all, e2e, api, web, a11y, smoke]
+      browser:
+        description: 'Browser to run on'
+        type: choice
+        default: chromium
+        options: [chromium, firefox, webkit]
+
+# Least-privilege default token; only the publish job elevates to write.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Static quality gate: type-check, lint, format check ───────────────────
+  quality:
+    name: Lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run validate
+
+  test:
+    name: ${{ matrix.project }} (${{ github.event.inputs.suite || 'all' }})
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # On push/PR -> run all three browsers.
+        # On a manual run -> run only the browser you picked.
+        project: >-
+          ${{ github.event_name == 'workflow_dispatch'
+              && fromJSON(format('["{0}"]', github.event.inputs.browser))
+              || fromJSON('["chromium","firefox","webkit"]') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      # Map the chosen suite to Playwright args. Empty => whole suite.
+      - name: Resolve suite args
+        id: suite
+        run: |
+          case "${{ github.event.inputs.suite }}" in
+            e2e)   echo "args=tests/e2e" >> "$GITHUB_OUTPUT" ;;
+            api)   echo "args=tests/api" >> "$GITHUB_OUTPUT" ;;
+            web)   echo "args=tests/web" >> "$GITHUB_OUTPUT" ;;
+            a11y)  echo "args=tests/a11y" >> "$GITHUB_OUTPUT" ;;
+            smoke) echo "args=--grep @smoke" >> "$GITHUB_OUTPUT" ;;
+            *)     echo "args=" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Run Playwright tests
+        run: npx playwright test ${{ steps.suite.outputs.args }} --project=${{ matrix.project }}
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Allure results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ matrix.project }}
+          path: allure-results/
+          retention-days: 7
+
+  # ── Publish a combined Allure report to GitHub Pages ──────────────────────
+  publish-report:
+    name: Publish Allure report
+    needs: test
+    if: ${{ github.event_name == 'push' && always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all Allure results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          merge-multiple: true
+          path: allure-results
+
+      - name: Restore trend history from gh-pages
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Carry over previous history
+        run: |
+          mkdir -p allure-results/history
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history/* allure-results/history/ || true
+          fi
+
+      - name: Write Allure executor metadata
+        run: |
+          cat > allure-results/executor.json <<EOF
+          {
+            "name": "GitHub Actions (Lewis Babe Yaka)",
+            "type": "github",
+            "reportName": "QA Automation Report",
+            "buildName": "CI #${{ github.run_number }}",
+            "buildUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "url": "${{ github.server_url }}/${{ github.repository }}/actions"
+          }
+          EOF
+
+      - name: Generate Allure report
+        run: npx allure generate allure-results --clean -o allure-report
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-report

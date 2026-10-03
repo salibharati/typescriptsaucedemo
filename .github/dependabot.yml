@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Keep test/runtime dependencies current (Playwright best practice).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        patterns: ['*']
+
+  # Keep GitHub Actions pinned versions current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
