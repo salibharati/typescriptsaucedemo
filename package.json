@@ -2,7 +2,7 @@
   "name": "playwright-typescript-framework",
   "version": "1.0.0",
   "description": "Production-style end-to-end, API and web test automation framework built with Playwright and TypeScript (Page Object Model, fixtures, CI).",
-  "author": "Lewis Babe Yaka",
+  "author": "automai",
   "license": "MIT",
   "type": "module",
   "scripts": {
