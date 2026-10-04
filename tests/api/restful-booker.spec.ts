@@ -24,7 +24,7 @@ test.describe.serial('Restful Booker REST API', { tag: '@regression' }, () => {
     await allure.parentSuite('API');
     await allure.epic('Quality Engineering');
     await allure.feature('Restful Booker (auth + CRUD)');
-    await allure.owner('salibharati');
+    await allure.owner('automai');
   });
 
   test('POST /auth returns a token', { tag: '@smoke' }, async ({ request }) => {

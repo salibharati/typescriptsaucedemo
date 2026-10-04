@@ -12,7 +12,7 @@ test.beforeEach(async () => {
   await allure.parentSuite('GraphQL API');
   await allure.epic('Quality Engineering');
   await allure.feature('Countries GraphQL');
-  await allure.owner('salibharati');
+  await allure.owner('automai');
 });
 
 test.describe('Countries GraphQL API', { tag: '@regression' }, () => {

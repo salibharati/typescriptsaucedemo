@@ -15,7 +15,7 @@ test.beforeEach(async () => {
   await allure.parentSuite('Accessibility');
   await allure.epic('Quality Engineering');
   await allure.feature('WCAG (axe-core)');
-  await allure.owner('salibharati');
+  await allure.owner('automai');
 });
 
 test.describe('Accessibility @regression', () => {

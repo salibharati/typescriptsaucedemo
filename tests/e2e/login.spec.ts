@@ -17,7 +17,7 @@ test.beforeEach(async () => {
   await allure.parentSuite('End-to-End (UI)');
   await allure.epic('Quality Engineering');
   await allure.feature('SauceDemo - Authentication');
-  await allure.owner('salibharati');
+  await allure.owner('automai');
 });
 
 test.describe('SauceDemo login', { tag: '@regression' }, () => {

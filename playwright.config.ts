@@ -33,7 +33,7 @@ export default defineConfig({
         environmentInfo: {
           Project: 'Playwright TypeScript Framework',
           Framework: 'Playwright + TypeScript',
-          Owner: 'salibharati',
+          Owner: 'automai',
           Node: process.version,
           OS: `${process.platform} ${process.arch}`,
         },

@@ -9,7 +9,7 @@ test.beforeEach(async () => {
   await allure.parentSuite('Web UI');
   await allure.epic('Quality Engineering');
   await allure.feature('playwright.dev');
-  await allure.owner('salibharati');
+  await allure.owner('automai');
 });
 
 test.describe('playwright.dev', () => {
