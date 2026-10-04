@@ -138,7 +138,7 @@ npm run allure:serve     # builds and opens the Allure report
 
 ## Author
 
-**Lewis Babe Yaka** - QA Tech Lead & SDET
+**automai** - QA Tech Lead & SDET
 [LinkedIn](https://www.linkedin.com/in/lewis-babe-yaka)
 
 ## License
